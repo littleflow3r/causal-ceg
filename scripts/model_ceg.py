@@ -56,15 +56,6 @@ class RE_LCKG(nn.Module):
         init.xavier_uniform_(self.dense_with_lckg.weight)
         init.constant_(self.dense_with_lckg.bias, 0.)
 
-        # init.xavier_uniform_(self.entity_mlp.weight)
-        # init.constant_(self.entity_mlp.bias, 0.)
-        # init.xavier_uniform_(self.dense.weight)
-        # init.constant_(self.dense.bias, 0.)
-        # init.xavier_uniform_(self.lckg_mlp.weight)
-        # init.constant_(self.lckg_mlp.bias, 0.)
-        # init.xavier_uniform_(self.lckg_mlp.weight)
-        # init.constant_(self.lckg_mlp.bias, 0.)
-
     def bert_layer(self, input_ids, attention_mask, token_type_ids):
         outputs = self.bert(
             input_ids=input_ids,
@@ -87,31 +78,22 @@ class RE_LCKG(nn.Module):
         input_ids = data[:, 0, :].view(-1, self.max_len)
         mask = data[:, 1, :].view(-1, self.max_len)
         input_ids_lckg = data[:, 2, :].view(-1, self.max_len)
-        #print (input_ids.shape, mask.shape, input_ids_lckg.shape)
 
         x_embed = self.embedding(input_ids_lckg).float() #[batch size, sent len, emb dim]
         _, hidden = self.rnn(x_embed) #hidden = [n layers * n directions, batch size, emb dim]
         lckg_reps = self.dropout(torch.cat((hidden[-2,:,:], hidden[-1,:,:]), dim = 1)) #from bidirectional both
         #lckg_reps = self.dropout(hidden[-1,:,:]) #hidden = [batch size, hid dim] #non-bidirectional
         #lckg_reps = self.tanh(self.lckg_mlp(lckg_reps))
-        #print ('LCKG:', lckg_reps.shape)
         
         attention_mask = mask.gt(0).float()
         token_type_ids = mask.gt(-1).long()
         hidden_output, pooler_output = self.bert_layer(input_ids, attention_mask, token_type_ids)
 
-        #print ('HO, PO:', hidden_output.shape, pooler_output.shape)
-
         cls_reps = self.dropout(pooler_output)
         cls_reps = self.tanh(self.cls_mlp(cls_reps))
-        # print ('CLS:', cls_reps.shape)
         
         reps = torch.cat([cls_reps, lckg_reps], dim=-1)
-        # print (reps.shape, cls_reps.shape)
         reps = self.dropout(reps)
         logits = self.dense_with_lckg(reps)
-        #print (logits, logits.shape, label)
         loss = self.criterion(logits, label)
-        #loss = self.criterion(logits, label.float())
-        #print ('loss:', loss)
         return loss, logits
