@@ -1,2 +1,4 @@
-#### Dataset and code for the paper: Causal-Evidence Graph for Causal Relation Classification.
-(readme to be added)
+# Supplementary materials: 
+### Causal-Evidence Graph for Causal Relation Classification (SAC 2024)
+
+(complete readme to-be-added)
